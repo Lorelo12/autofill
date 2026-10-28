@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preenche</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="header">
+        <h1>Preenche</h1>
+        <p class="subtitle">Perfilização Home office</p>
+      </header>
+
+      <section class="fields" id="fields">
+        <label class="field">
+          <span>BR do operador</span>
+          <input type="text" id="br" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span>Ramal</span>
+          <input type="text" id="ramal" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span>Motivo</span>
+          <select id="motivo">
+            <option value="">— selecione —</option>
+          </select>
+        </label>
+
+        <div class="readouts">
+          <div class="readout">
+            <span class="readout-label">DATA</span>
+            <span class="readout-value" id="data">—</span>
+          </div>
+          <div class="readout">
+            <span class="readout-label">Horário</span>
+            <span class="readout-value" id="horario">—</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button type="button" id="save" class="btn btn-secondary">
+          Guardar dados
+        </button>
+        <button type="button" id="open" class="btn btn-primary">
+          Abrir formulário
+        </button>
+      </div>
+
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </main>
+
+    <script src="form-config.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
