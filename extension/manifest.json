@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Preenche - Perfilização Home office",
-  "version": "1.0.0",
-  "description": "Abre o formulário de perfilização já preenchido com data, horário, BR e ramal.",
+  "version": "1.0.1",
+  "description": "Preenche o formulário de perfilização na página aberta, quando é o formulário certo.",
   "permissions": [
+    "activeTab",
     "storage",
     "tabs"
   ],

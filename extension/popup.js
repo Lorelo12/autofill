@@ -5,8 +5,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const dataValue = document.getElementById("data");
   const horarioValue = document.getElementById("horario");
   const saveButton = document.getElementById("save");
+  const prefillButton = document.getElementById("prefillActive");
   const openButton = document.getElementById("open");
   const statusEl = document.getElementById("status");
+  const formStatusEl = document.getElementById("formStatus");
 
   // Preenche as opções de motivo vindas do config.
   PRE.MOTIVOS.forEach((motivo) => {
@@ -43,6 +45,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   loadSaved();
 
+  // Verifica se a página atual já é o formulário alvo.
+  async function detectFormTab() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      formStatusEl.textContent = "Não há aba ativa.";
+      formStatusEl.className = "form-status";
+      return;
+    }
+
+    // Se o popup não tem acesso direto à página, use o content script.
+    try {
+      const result = await chrome.tabs.sendMessage(tab.id, { type: "PRE:DETECT" });
+      if (result && result.type === "PRE:DETECTED") {
+        formStatusEl.textContent = `Formulário detectado: ${result.detected} campo(s) compatível(eis).`;
+        formStatusEl.className = "form-status ok";
+        prefillButton.disabled = false;
+        return;
+      }
+    } catch (err) {
+      // Se não conseguir comunicar com a página, assume estado neutro.
+    }
+
+    formStatusEl.textContent = "Abra o formulário do Google Forms nesta aba.";
+    formStatusEl.className = "form-status";
+    prefillButton.disabled = true;
+  }
+  detectFormTab();
+
   function setStatus(message, kind) {
     statusEl.textContent = message;
     statusEl.className = "status" + (kind ? ` ${kind}` : "");
@@ -60,10 +90,8 @@ document.addEventListener("DOMContentLoaded", () => {
   saveButton.addEventListener("click", async () => {
     const form = captureForm();
 
-    // Aceita guardar mesmo sem motivo, mas avisa que o formulário não
-    // abrirá com prefill completo nesse estado.
     if (!form.br && !form.ramal && !form.motivo) {
-      setStatus("Guarda algo antes de tentar abrir o formulário.", "error");
+      setStatus("Guarda algo antes de tentar preencher.", "error");
       return;
     }
 
@@ -82,13 +110,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Abre o Google Forms.
-  // - Se houver dados suficientes guardados, abre a URL de prefill.
-  // - Se não, abre o formulário normal e deixa o usuário preencher.
+  // Envia os dados guardados para o content script na aba aberta.
+  prefillButton.addEventListener("click", async () => {
+    const form = captureForm();
+
+    if (!form.br && !form.ramal && !form.motivo) {
+      setStatus("Guarda pelo menos um campo antes de preencher.", "error");
+      return;
+    }
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      setStatus("Não há aba ativa.", "error");
+      return;
+    }
+
+    try {
+      await chrome.tabs.sendMessage(tab.id, {
+        type: "PRE:PREFILL",
+        payload: {
+          br: form.br,
+          ramal: form.ramal,
+          motivo: form.motivo,
+        },
+      });
+      setStatus("Pedimos preenchimento à página aberta.", "ok");
+      setTimeout(() => setStatus(""), 2500);
+    } catch (err) {
+      setStatus("Não foi possível comunicar com a página aberta.", "error");
+    }
+  });
+
+  // Abre o Google Forms publicado.
   openButton.addEventListener("click", async () => {
     const form = captureForm();
 
-    // Salva o que foi inserido agora, para reutilizar na próxima vez.
     await chrome.storage.local.set({
       [PRE.STORAGE_KEY]: {
         br: form.br,
@@ -104,6 +160,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const url = PRE.buildPrefillUrl(form);
-    const tab = await chrome.tabs.create({ url, active: true });
+    await chrome.tabs.create({ url, active: true });
   });
 });
